@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#060910"><title>Lyric Stamp</title><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#060910"><title>Lyric Stamp</title><meta name="application-version" content="2.0.0"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Montserrat:wght@800&family=Bebas+Neue&family=Playfair+Display:wght@700&family=Pacifico&family=Permanent+Marker&display=swap">
 <style>
 /* Layout: sticky preview stage on top, one panel per step beneath it, a fixed step bar at the bottom, and a Stamp dock that rides above the bar on the Time step. */
@@ -105,6 +105,12 @@ input[type=range]:disabled{opacity:.4}
 .bgsw[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px}
 .bgpic{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border-radius:8px;border:1px dashed var(--line);font:600 14px var(--f-body);cursor:pointer;background:var(--surface)}
 
+.brand-tools{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:14px}
+.brand-tools input[type=color]{width:54px;height:44px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.color-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.logo-preview{width:100%;max-height:90px;object-fit:contain;background:repeating-conic-gradient(#d6dae4 0% 25%,#fff 0% 50%) 0/16px 16px;border-radius:8px;padding:8px}
+dialog{max-width:min(460px,calc(100vw - 32px));border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.55)}dialog p{margin:14px 0}.timing-import{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 /* Lyrics step */
 textarea{width:100%;min-height:260px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:16px/1.5 var(--f-body);resize:vertical}
 textarea::placeholder{color:var(--ink2);opacity:.8}
@@ -210,6 +216,25 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
       <button class="btn quiet rm" id="rmA" type="button" hidden>Remove audio</button>
     </div>
 
+    <details class="brand-tools" id="brandingBox">
+      <summary><b>Your logo and brand colors</b></summary>
+      <p class="hint">Add a logo to your video. We suggest colors from it, and you can change every color.</p>
+      <label class="bgpic" for="logoFile" id="logoLabel">Upload your logo</label>
+      <input class="sr" id="logoFile" type="file" accept="image/png,image/jpeg,image/webp">
+      <p class="hint">PNG, JPG or WebP. A transparent PNG works best. Your logo stays on this device.</p>
+      <img class="logo-preview" id="logoPreview" alt="Your uploaded logo" hidden>
+      <div class="row"><button class="btn quiet" id="removeLogo" type="button" hidden>Remove logo</button><label><input id="showLogo" type="checkbox" checked> Show logo in video</label></div>
+      <div class="field"><span class="lab">Colors found in your logo</span><div class="swatches" id="logoPalette"></div><p class="hint" id="paletteNote">Upload a logo to see its colors.</p></div>
+      <div class="color-grid">
+        <div class="field"><label class="lab" for="brandCaption">Lyric color</label><input id="brandCaption" type="color" value="#EDCF71"></div>
+        <div class="field"><label class="lab" for="brandHi">Sung color</label><input id="brandHi" type="color" value="#EDCF71"></div>
+        <div class="field"><label class="lab" for="brandAccent">Brand accent</label><input id="brandAccent" type="color" value="#E2C368"></div>
+        <div class="field"><label class="lab" for="brandBg">Brand background</label><input id="brandBg" type="color" value="#060910"></div>
+      </div>
+      <p class="hint" id="contrastNote" role="status"></p><button class="btn" id="fixContrast" type="button" hidden>Improve lyric contrast</button>
+      <div class="field"><label class="lab" for="logoPosition">Logo position</label><select class="txt" id="logoPosition"><option value="top-right">Top right</option><option value="top-left">Top left</option><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option></select></div>
+      <div class="field"><label class="lab" for="logoSize">Logo size <span id="logoSizeValue">10%</span></label><input id="logoSize" type="range" min="5" max="18" step="1" value="10"></div>
+    </details>
     <p class="note" id="mixNote" hidden></p>
     <p class="note" id="resume" hidden>Your lyrics and timing from last time are saved. Choose the same files again to keep going.</p>
 
@@ -244,8 +269,10 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
 
   <section class="panel" data-panel="lyrics" hidden>
     <h2>Your lyrics and timing</h2>
-    <p class="lede">Paste your lyrics, then tap <b>Auto-Sync Lyrics</b> to time them from your song. Or paste lyrics that already have times, like <span class="mono">00:15.2 --&gt; 00:20.0 | words</span> (ChatGPT and .srt formats work too).</p>
-    <textarea id="lyrics" spellcheck="false" autocapitalize="sentences" placeholder="00:15.2 --&gt; 00:20.0 | Sometimes I wonder&#10;00:21.7 --&gt; 00:25.4 | If there is really someone"></textarea>
+    <p class="lede">Paste plain lyrics to create draft timings, or import lyrics that already have times. Imported timings are kept exactly. Example: <span class="mono">00:15.2 to 00:20.0 | words</span>.</p>
+    <textarea id="lyrics" spellcheck="false" autocapitalize="sentences" placeholder="00:15.2 to 00:20.0 | Sometimes I wonder&#10;00:21.7 to 00:25.4 | If there is really someone"></textarea>
+    <div class="timing-import"><label class="bgpic" for="timingFile">Import timed lyrics (.txt, .srt, .lrc)</label><input class="sr" id="timingFile" type="file" accept=".txt,.srt,.lrc,text/plain"><button class="btn quiet" id="undoSync" type="button" hidden>Undo last Auto-Sync</button></div>
+    <p class="warn" id="timingError" role="alert" hidden></p>
     <div class="row between">
       <span class="mono" id="count">0 lines</span>
       <div class="row">
@@ -254,7 +281,9 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
       </div>
     </div>
     <div class="auto">
-      <button class="btn primary big" id="autoSync" type="button">Auto-Sync Lyrics</button>
+      <button class="btn primary big" id="autoSync" type="button">Auto-Sync plain lyrics</button>
+      <button class="btn" id="retime" type="button" hidden>Replace timings with Auto-Sync…</button>
+      <p class="note" id="timingProtected" hidden>Timings loaded and protected. Preview them, then choose Next: make the video. Auto-Sync is not needed.</p>
       <p class="hint">Add your song and paste plain lyrics, then tap this. It listens to the recording on this phone (free) and times each line. The first time it downloads a speech model, which can take a minute or two.</p>
       <div class="prog" id="autoProg" hidden><div class="bar"><i id="autoBar"></i></div><p class="note" id="autoMsg"></p></div>
       <div class="paste" id="paidBox" hidden style="padding:14px">
@@ -279,8 +308,9 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
     <details class="paste">
       <summary>Captions a little early or late?</summary>
     <div class="field"><label class="lab" for="shift">Shift all captions <span class="mono" id="shiftV">0.00 s</span></label>
-      <input id="shift" type="range" min="-1" max="1" step="0.05" value="0">
-      <p class="hint">If every line shows up a little early or late, slide this to move them all together. Positive means later.</p>
+      <input id="shift" type="range" min="-10" max="10" step="0.05" value="0">
+      <div class="row"><button class="btn" id="captionEarlier" type="button">Earlier −0.25 s</button><button class="btn" id="captionLater" type="button">Later +0.25 s</button><button class="btn quiet" id="resetShift" type="button">Reset</button></div>
+      <p class="hint">Positive moves captions later. This changes when lyrics appear, not the song speed. For individual lines, choose Review timing.</p>
     </div>
     </details>
   </section>
@@ -363,8 +393,8 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
       <button class="btn" id="copyT" type="button">Copy timings</button>
       <textarea id="timesOut" readonly hidden style="min-height:140px;margin:10px 0" aria-label="Timings to copy"></textarea>
       <div class="divider" style="margin:14px 0"></div>
-      <p class="hint">Want YouTube to show the lyrics as its own captions instead of text burned into the picture? Save the timing as text, then rename the file from .txt to .srt before you upload it.</p>
-      <button class="btn" id="srtBtn" type="button" style="margin-bottom:14px">Save captions as SRT text</button>
+      <p class="hint">Want YouTube to show the lyrics as its own captions instead of text burned into the picture? Download the .srt file and upload it with your video.</p>
+      <button class="btn" id="srtBtn" type="button" style="margin-bottom:14px">Save captions (.srt)</button>
     </details>
   </section>
 </main>
@@ -381,6 +411,7 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
   <button type="button" data-tab="export"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>3 Video</button>
 </nav>
 
+<dialog id="retimeDialog" aria-labelledby="retimeTitle"><h2 id="retimeTitle">Replace your timings?</h2><p>Auto-Sync creates an estimate from the audio. It can be less accurate for singing. Your current timings will be saved so you can undo this change.</p><div class="row"><button class="btn" id="retimeCancel" type="button">Keep current timings</button><button class="btn primary" id="retimeConfirm" type="button">Create new draft timings</button></div></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <video id="v" class="vid" playsinline webkit-playsinline preload="auto"></video>
 
@@ -3527,8 +3558,10 @@ const FPS=30;
 const S={
   lines:[], cur:0, sel:-1, tab:'song',
   aspect:'16:9', bg:0, bgImg:null, coverAuto:false, coverName:'', layout:'brand', title:'', artist:'', footer:'SUBSCRIBE FOR MORE MUSIC', titleAuto:false, artistAuto:false, hold:8, delay:200, shift:0, quality:1080, rate:1,
+  brand:{accent:'#E2C368',caption:'#EDCF71',hi:'#EDCF71',background:'#060910',palette:[],showLogo:true,position:'top-right',size:10,logoData:'',logoName:''}, timingIssues:[], undoLyrics:null,
   style:{font:'Montserrat',size:6.5,color:'#FFFFFF',hi:'#FFD23F',pos:'bottom',sweep:true,outline:true,shadow:true,box:false,caps:false}
 };
+let logoImg=null, logoToken=0;
 let pic=null;                       // file in the video slot: {name,file,url,w,h,duration}
 let snd=null;                       // file in the audio slot: {name,file,duration,buf}
 let audioBusy=false, audioToken=0;
@@ -3602,17 +3635,10 @@ function activeAt(t){
 }
 const firstUnstamped=()=>{ const i=S.lines.findIndex(l=>l.start==null); return i<0?S.lines.length:i; };
 function parseLyrics(){
-  S.low=[];
-  const raw=$('#lyrics').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const tr=parseTimings($('#lyrics').value); window.__tp=tr;
-  const nraw=normalizeTimings($('#lyrics').value).split(/\r?\n/).map(s=>s.trim()).filter(s=>s&&!/^\d+$/.test(s));
-  if(tr.lines.length&&tr.lines.length>=nraw.length*0.5){
-    S.lines=tr.lines; S.cur=S.lines.length; S.sel=-1; timedMode=true;
-  }else{
-    const txt=raw, wasTimed=timedMode, old=wasTimed?[]:S.lines, same=txt.length===old.length; timedMode=false;
-    S.lines=txt.map((t,i)=>{ const o=old[i]; return(o&&(same||o.text===t))?{text:t,start:o.start,end:o.end}:{text:t,start:null,end:null}; });
-    S.cur=firstUnstamped(); S.sel=-1;
-  }
+  if(S.parsedLyrics!==$('#lyrics').value)S.low=[];S.parsedLyrics=$('#lyrics').value;
+  const tr=parseTimings($('#lyrics').value);window.__tp=tr;S.timingIssues=tr.issues;
+  if(tr.hasTimes){S.lines=tr.lines;S.cur=firstUnstamped();S.sel=-1;timedMode=tr.timed===tr.lines.length&&!tr.bad;}
+  else{const old=timedMode?[]:S.lines;timedMode=false;S.lines=tr.lines.map((l,i)=>{const o=old[i];return o&&o.text===l.text?{...o}:{text:l.text,start:null,end:null};});S.cur=firstUnstamped();S.sel=-1;}
   rebuild(); renderLyricsNext();
   renderCues(); renderExport(); renderDock(); persist(); loadFont();
   if(timedMode&&S.lines.length&&!isPlaying()) seek(Math.max(0,S.lines[0]._s-1));
@@ -3623,50 +3649,75 @@ function renderLyricsNext(){
   timedMode=n>0&&st===n&&S.lines.every(l=>l.end!=null);
   $('#count').textContent=n+(n===1?' line':' lines')+(st&&st<n?' · '+st+' timed':'')+(timedMode?' · timed':'');
   const note=$('#lyNote'), b=$('#toTime');
+  const hasTimes=S.lines.some(l=>l.start!=null)||(window.__tp&&window.__tp.hasTimes);
+  $('#autoSync').disabled=!!hasTimes;$('#autoSync').textContent=hasTimes?'Existing timings protected':'Auto-Sync plain lyrics';
+  $('#retime').hidden=!hasTimes;$('#timingProtected').hidden=!hasTimes||!!S.timingIssues.length;
+  $('#timingError').hidden=!S.timingIssues.length;$('#timingError').textContent=S.timingIssues.join(' ');
+  $('#undoSync').hidden=S.undoLyrics==null;$('#reviewBtn').hidden=!st;
+  if(S.timingIssues.length){note.hidden=true;b.textContent='Fix the timing above';b.disabled=true;return;}b.disabled=false;
   if(timedMode){ note.hidden=false; note.textContent='Timings loaded for '+n+' captions. Press play above to check them, then make your video.'; b.textContent='Next: make the video'; }
   else if(st===n&&n>0){ note.hidden=true; b.textContent='Next: make the video'; }
   else if(window.__tp&&window.__tp.lines.length&&window.__tp.lines.length<n){ note.hidden=false; note.textContent='Only '+window.__tp.lines.length+' of '+n+' lines have a time I can read, so the rest would not show. Put each time at the start of its line, like 01:23.5 --> 01:27 | lyric.'; b.textContent='Next'; }
   else{ note.hidden=!n; note.textContent=n?'These lines have no times yet. Paste them with times above, or stamp them by hand on the next screen.':''; b.textContent=n?'Next: stamp the timing':'Next'; }
 }
 /* ---------- paste timings ---------- */
-function tSec(x){ const p=x.replace(',','.').split(':').map(Number); if(p.some(n=>!isFinite(n))) return NaN; return p.reduce((acc,n)=>acc*60+n,0); }
+function tSec(x){
+  const p=x.replace(',','.').split(':').map(Number);
+  if(p.length<2||p.length>3||p.some(n=>!isFinite(n)||n<0)||p[p.length-1]>=60||(p.length===3&&p[1]>=60)) return NaN;
+  return p.reduce((acc,n)=>acc*60+n,0);
+}
 function normalizeTimings(str){
-  const src=str.split(/\r?\n/); const out=[];
+  str=String(str).replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ').replace(/[\u200b\uFEFF]/g,'')
+    .replace(/&(?:gt|#62);/gi,'>').replace(/&(?:lt|#60);/gi,'<').replace(/&amp;/gi,'&')
+    .replace(/[→➜➝⟶]/g,' to ').replace(/[-–—−]+\s*>/g,' to ');
+  const src=str.split('\n'),out=[];
   const TM='(\\d+(?::\\d+)+(?:[.,]\\d+)?)';
-  const capRe=new RegExp('^\\s*Caption\\s*\\d+\\s*:\\s*\\[?'+TM+'\\]?\\s*(?:-->|->|–|—|-|to)\\s*\\[?'+TM+'\\]?','i');
-  const srtRe=new RegExp('^\\s*'+TM+'\\s*-->\\s*'+TM+'\\s*$');
+  const range=new RegExp('^\\s*'+TM+'\\s*(?:to|[-–—−]+)\\s*'+TM+'\\s*$','i');
+  const cap=new RegExp('^Caption\\s*\\d+\\s*:\\s*\\[?'+TM+'\\]?\\s*(?:to|[-–—−]+)\\s*\\[?'+TM+'\\]?\\s*$','i');
   for(let i=0;i<src.length;i++){
-    const line=src[i]; let m=line.match(capRe);
-    if(m){ let j=i+1; while(j<src.length&&!src[j].trim()) j++; const t=(src[j]||'').match(/^\s*Lyrics?\s*:\s*(.+?)\s*$/i); if(t){ out.push(m[1]+' --> '+m[2]+' | '+t[1].replace(/^["“]|["”]$/g,'')); i=j; continue; } }
-    m=line.match(srtRe);
-    if(m){ const txt=[]; let j=i+1; while(j<src.length&&src[j].trim()&&!/^\d+\s*$/.test(src[j].trim())){ txt.push(src[j].trim()); j++; } if(txt.length){ out.push(m[1]+' --> '+m[2]+' | '+txt.join(' ')); i=j-1; continue; } }
+    let line=src[i].trim();
+    if(!line||/^```/.test(line)||/^\d+$/.test(line)) continue;
+    line=line.replace(/^\s*[-*•]\s+(?=\[?\d+:)/,'').replace(/\*\*/g,'');
+    let m=line.match(cap);
+    if(m){ let j=i+1;while(j<src.length&&!src[j].trim())j++;const t=(src[j]||'').match(/^\s*Lyrics?\s*:\s*(.+)$/i);if(t){out.push(m[1]+' to '+m[2]+' | '+t[1].replace(/^["“]|["”]$/g,''));i=j;continue;} }
+    m=line.match(range);
+    if(m){const txt=[];let j=i+1;while(j<src.length&&src[j].trim()&&!/^\d+$/.test(src[j].trim())&&!src[j].trim().match(range)){txt.push(src[j].trim());j++;}if(txt.length){out.push(m[1]+' to '+m[2]+' | '+txt.join(' '));i=j-1;continue;}}
+    if(/^\[(?:ar|ti|al|by|offset|length):/i.test(line)) continue;
     out.push(line);
   }
   return out.join('\n');
 }
 function parseTimings(str){
-  str=normalizeTimings(str);
-  const T_='(\\d+(?::\\d+)+(?:[.,]\\d+)?)';
-  const O='[\\[\\(]?', C='[\\]\\)]?', SEP='(?:\\s*[|\\t:\\-–—]\\s*|\\s+)';
-  const lead='^\\s*(?:\\d+[.)]\\s+)?';
-  const both=new RegExp(lead+O+T_+C+'\\s*(?:-->|->|–|—|-|to)\\s*'+O+T_+C+SEP+'(.+?)\\s*$');
-  const one=new RegExp(lead+O+T_+C+SEP+'(.+?)\\s*$');
-  const out=[]; let bad=0;
-  str.split(/\r?\n/).forEach(raw=>{
-    if(!raw.trim()) return;
-    let m=raw.match(both);
-    if(m){ const a=tSec(m[1]), b=tSec(m[2]); if(isFinite(a)&&m[3]){ out.push({text:m[3],start:Math.max(0,a),end:(isFinite(b)&&b>a)?b:null}); return; } }
-    m=raw.match(one);
-    if(m){ const a=tSec(m[1]); if(isFinite(a)){ out.push({text:m[2],start:Math.max(0,a),end:null}); return; } }
-    bad++;
+  const normalized=normalizeTimings(str), raw=normalized.split('\n').filter(Boolean);
+  const TM='(\\d+(?::\\d+)+(?:[.,]\\d+)?)', lead='^\\s*(?:\\d+[.)]\\s+)?';
+  const both=new RegExp(lead+'\\[?'+TM+'\\]?\\s*(?:to|[-–—−]+)\\s*\\[?'+TM+'\\]?\\s*\\]?\\s*(?:[|:\\t]\\s*|\\s+)(.+)$','i');
+  const one=new RegExp(lead+'(?:\\['+TM+'\\]\\s*|'+TM+'\\s*(?:[|:\\t-]\\s*|\\s+))(.+)$');
+  const lines=[],issues=[];let timed=0,hasTimes=false,last=-1;
+  raw.forEach((line,i)=>{
+    if(/^\s*(?:\d+[.)]\s+)?\[?\d+:\d+/.test(line)) hasTimes=true;
+    let m=line.match(both),start=null,end=null,text=line;
+    if(m){start=tSec(m[1]);end=tSec(m[2]);text=m[3].trim();}
+    else if((m=line.match(one))){start=tSec(m[1]||m[2]);text=m[3].trim();}
+    if(start!==null){
+      if(!isFinite(start)||(end!==null&&(!isFinite(end)||end<=start))||/^(?:>|to\s+\d+:|\d+:\d+)/i.test(text)){
+        issues.push('Line '+(i+1)+': check the start, end and lyric text.');lines.push({text:line,start:null,end:null});return;
+      }
+      if(start<last)issues.push('Line '+(i+1)+': its start is earlier than the previous line.');
+      if(lines.length&&lines[lines.length-1].end!=null&&start<lines[lines.length-1].end)issues.push('Line '+(i+1)+': overlaps the previous caption.');
+      last=start;timed++;lines.push({text:text,start:start,end:end});
+    }else{
+      lines.push({text:line,start:null,end:null});
+      if(/^\s*(?:\d+[.)]\s+)?\[?\d+:\d+/.test(line))issues.push('Line '+(i+1)+': this timing format could not be read.');
+    }
   });
-  return {lines:out,bad:bad};
+  if(hasTimes&&timed&&lines.some(l=>l.start===null)&&!issues.length)issues.push('Some lines have no timing. Add a time for every lyric, or use plain lyrics throughout.');
+  return {lines:lines,timed:timed,bad:issues.length,issues:issues,hasTimes:hasTimes};
 }
 
 /* ---------- copy timings ---------- */
 function timingsText(){
   const f=t=>{ t=Math.max(0,t); const m=Math.floor(t/60), s=t-m*60; return String(m).padStart(2,'0')+':'+(s<10?'0':'')+s.toFixed(3); };
-  return S.lines.filter(l=>l._s!=null&&l._e!=null).map(l=>f(l._s)+' --> '+f(l._e)+' | '+l.text).join('\n');
+  return S.lines.filter(l=>l._s!=null&&l._e!=null).map(l=>f(l._s)+' to '+f(l._e)+' | '+l.text).join('\n');
 }
 async function copyTimings(){
   const txt=timingsText(), box=$('#timesOut');
@@ -3686,7 +3737,7 @@ function persist(){
       localStorage.setItem(KEY,JSON.stringify({
         lyrics:$('#lyrics').value,
         lines:S.lines.map(l=>({text:l.text,start:l.start,end:l.end})),
-        aspect:S.aspect,bg:S.bg,layout:S.layout,title:S.titleAuto?'':S.title,artist:S.artistAuto?'':S.artist,footer:S.footer,hold:S.hold,delay:S.delay,shift:S.shift,quality:S.quality,style:S.style
+        brand:S.brand,undoLyrics:S.undoLyrics,aspect:S.aspect,bg:S.bg,layout:S.layout,title:S.titleAuto?'':S.title,artist:S.artistAuto?'':S.artist,footer:S.footer,hold:S.hold,delay:S.delay,shift:S.shift,quality:S.quality,style:S.style
       }));
     }catch(e){}
   },250);
@@ -3698,6 +3749,16 @@ function restore(){
     if(typeof d.lyrics==='string') $('#lyrics').value=d.lyrics;
     if(Array.isArray(d.lines)) S.lines=d.lines.filter(l=>l&&typeof l.text==='string').map(l=>({
       text:l.text,start:typeof l.start==='number'?l.start:null,end:typeof l.end==='number'?l.end:null}));
+    if(d.brand&&typeof d.brand==='object'){
+      for(const k of ['accent','caption','hi','background'])if(/^#[0-9a-f]{6}$/i.test(d.brand[k]||''))S.brand[k]=d.brand[k];
+      if(Array.isArray(d.brand.palette))S.brand.palette=d.brand.palette.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,5);
+      if(['top-left','top-right','bottom-left','bottom-right'].includes(d.brand.position))S.brand.position=d.brand.position;
+      if(typeof d.brand.size==='number')S.brand.size=clamp(d.brand.size,5,18);
+      if(typeof d.brand.showLogo==='boolean')S.brand.showLogo=d.brand.showLogo;
+      if(typeof d.brand.logoData==='string'&&/^data:image\/png;base64,/.test(d.brand.logoData)&&d.brand.logoData.length<1500000){S.brand.logoData=d.brand.logoData;S.brand.logoName=String(d.brand.logoName||'Logo');const im=new Image();im.onload=()=>{logoImg=im;renderBrand();dirty=true;};im.src=S.brand.logoData;}
+    }
+    if(typeof d.undoLyrics==='string')S.undoLyrics=d.undoLyrics;
+    S.timingIssues=parseTimings($('#lyrics').value).issues;
     if(SHAPES[d.aspect]) S.aspect=d.aspect;
     if(d.layout==='brand'||d.layout==='full') S.layout=d.layout;
     if(typeof d.title==='string'&&d.title) S.title=d.title.slice(0,80);
@@ -3706,7 +3767,7 @@ function restore(){
     if(Number.isInteger(d.bg)&&d.bg>=0&&d.bg<BGS.length) S.bg=d.bg;
     if(typeof d.hold==='number') S.hold=clamp(d.hold,3,15);
     if(typeof d.delay==='number') S.delay=clamp(d.delay,0,400);
-    if(typeof d.shift==='number') S.shift=clamp(d.shift,-1,1);
+    if(typeof d.shift==='number') S.shift=clamp(d.shift,-10,10);
     if(d.quality===720||d.quality===1080) S.quality=d.quality;
     if(d.style&&typeof d.style==='object'){
       const st=d.style;
@@ -3822,31 +3883,31 @@ function brandGeom(W,H){
 const BRAND_GOLD='#E2C368', BRAND_TEXT='#EDCF71';
 let brandCache=null;
 function brandFrame(W,H){
-  const key=[W,H,S.title,S.artist,S.footer,S.style.font].join('|');
+  const key=[W,H,S.title,S.artist,S.footer,S.style.font,S.brand.accent,S.brand.background].join('|');
   if(brandCache&&brandCache.key===key&&brandCache.im===S.bgImg) return brandCache.cv;
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d'), G=brandGeom(W,H), u=G.u, im=S.bgImg;
-  x.fillStyle='#060910'; x.fillRect(0,0,W,H);
+  x.fillStyle=S.brand.background; x.fillRect(0,0,W,H);
   const cs=G.cs, cx0=G.cx, cy0=G.cy, fit=Math.min(cs/im.width,cs/im.height);
   x.drawImage(im,cx0+(cs-im.width*fit)/2,cy0+(cs-im.height*fit)/2,im.width*fit,im.height*fit);
-  x.strokeStyle=BRAND_GOLD; x.lineWidth=Math.max(1,2*u); x.strokeRect(cx0-u,cy0-u,cs+2*u,cs+2*u);
+  x.strokeStyle=S.brand.accent; x.lineWidth=Math.max(1,2*u); x.strokeRect(cx0-u,cy0-u,cs+2*u,cs+2*u);
   const px=G.px, pw=G.pw, fam='"'+S.style.font+'", system-ui, sans-serif', wt=FONTS[S.style.font].w;
   x.textAlign='center'; x.textBaseline='middle';
   const fitLine=(txt,size)=>{ let s=size; x.font=wt+' '+s+'px '+fam; while(s>size*0.5&&x.measureText(txt).width>pw){ s*=0.94; x.font=wt+' '+s+'px '+fam; } return s; };
   const artist=(S.artist||'').toUpperCase(), title=(S.title||'').toUpperCase(), foot=(S.footer||'').toUpperCase();
-  if(artist){ x.fillStyle=BRAND_GOLD; fitLine(artist,G.artS*u); x.fillText(artist,px,G.artY); }
+  if(artist){ x.fillStyle=readableColor(S.brand.accent,S.brand.background); fitLine(artist,G.artS*u); x.fillText(artist,px,G.artY); }
   if(title){
     let size=G.titS*u, rows; x.font=wt+' '+size+'px '+fam;
     rows=wrapText(x,title,pw);
     while(rows.length>3&&size>34*u){ size*=0.92; x.font=wt+' '+size+'px '+fam; rows=wrapText(x,title,pw); }
-    const lh=size*1.34, top=G.titY-(rows.length-1)*lh/2; x.fillStyle='#FFFFFF';
+    const lh=size*1.34, top=G.titY-(rows.length-1)*lh/2; x.fillStyle=readableColor('#FFFFFF',S.brand.background);
     rows.forEach((r,i)=>x.fillText(r,px,top+i*lh));
   }
-  x.strokeStyle=BRAND_GOLD; x.lineWidth=Math.max(1,2*u); x.beginPath(); x.moveTo(px-G.ruleHalf,G.ruleY); x.lineTo(px+G.ruleHalf,G.ruleY); x.stroke();
-  if(foot){ x.fillStyle=BRAND_GOLD; fitLine(foot,G.footS*u); x.fillText(foot,px,G.footY); }
+  x.strokeStyle=S.brand.accent; x.lineWidth=Math.max(1,2*u); x.beginPath(); x.moveTo(px-G.ruleHalf,G.ruleY); x.lineTo(px+G.ruleHalf,G.ruleY); x.stroke();
+  if(foot){ x.fillStyle=readableColor(S.brand.accent,S.brand.background); fitLine(foot,G.footS*u); x.fillText(foot,px,G.footY); }
   brandCache={key:key,im:S.bgImg,cv:cv}; return cv;
 }
 function drawBase(c,W,H){ if(brandOn()) c.drawImage(brandFrame(W,H),0,0); else drawBg(c,W,H); }
-const capStyle=()=>brandOn()?{font:S.style.font,size:5.4,color:BRAND_TEXT,hi:BRAND_TEXT,pos:'bottom',sweep:false,outline:false,shadow:false,box:false,caps:false}:S.style;
+const capStyle=()=>brandOn()?{...S.style,color:S.brand.caption,hi:S.brand.hi,pos:'middle'}:S.style;
 let bgCache=null;
 function bgBackdrop(im,W,H){
   if(bgCache&&bgCache.im===im&&bgCache.W===W&&bgCache.H===H) return bgCache.cv;
@@ -3925,7 +3986,8 @@ function getLayers(W,H,text){
 function drawCaption(c,W,H,text,frac,alpha){
   const L=getLayers(W,H,text), st=capStyle(), m=H*0.075, br=brandOn();
   const BG=br?brandGeom(W,H):null, bx=br?Math.round(BG.capX-L.bw/2):Math.round((W-L.bw)/2);
-  const by=br?Math.round(BG.capY-L.textH/2-L.pad):Math.round(st.pos==='top'?m-L.pad:st.pos==='middle'?(H-L.textH)/2-L.pad:H-m-L.textH-L.pad);
+  let by=br?Math.round(BG.capY-L.textH/2-L.pad):Math.round(st.pos==='top'?m-L.pad:st.pos==='middle'?(H-L.textH)/2-L.pad:H-m-L.textH-L.pad);
+  if(!br&&logoImg&&S.brand.showLogo){const lb=logoBox(W,H);if(st.pos==='top'&&S.brand.position.startsWith('top'))by=Math.max(by,lb.y+lb.h+H*.025);if(st.pos==='bottom'&&S.brand.position.startsWith('bottom'))by=Math.min(by,lb.y-L.bh-H*.025);}
   c.save(); c.globalAlpha=alpha; c.drawImage(L.base,bx,by);
   if(st.sweep&&frac>0){
     const prog=frac*L.total; let acc=0;
@@ -3956,6 +4018,7 @@ function captionAt(t,preview){
 function paintFrame(c,W,H,t,drawPic,preview){
   c.fillStyle='#000'; c.fillRect(0,0,W,H);
   drawPic(c,W,H);
+  drawLogo(c,W,H);
   const cap=captionAt(t,preview);
   if(cap&&cap.alpha>0) drawCaption(c,W,H,cap.text,cap.frac,cap.alpha);
 }
@@ -4190,7 +4253,7 @@ function renderStyle(){
   $$('#colorSw .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===st.color)));
   $$('#hiSw .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===st.hi)));
   $$('#fx .chip').forEach(b=>b.setAttribute('aria-pressed',String(!!st[b.dataset.k])));
-  $('#hiField').hidden=!st.sweep; dirty=true;
+  $('#hiField').hidden=!st.sweep; renderBrand();dirty=true;
 }
 function renderExport(){
   const n=S.lines.length, done=S.lines.filter(l=>l.start!=null).length, d=dur();
@@ -4416,6 +4479,9 @@ async function slowExport(){
 /* ---------- export: entry point ---------- */
 async function startExport(forceSlow){
   if(exporting) return;
+  clearTimeout(lyT);parseLyrics();
+  if(S.timingIssues.length){toast('Fix the timing errors before exporting.');setTab('lyrics');return;}
+  if(S.lines.some(l=>l.start==null)){toast('Every lyric needs a time before export. Review the untimed lines.');setTab('time');return;}
   if(!hasAny()){ toast('Choose your song first.'); setTab('song'); return; }
   if(!S.lines.some(l=>l.start!=null)){ toast('Stamp at least one line first.'); setTab('time'); return; }
   pauseAll();
@@ -4508,7 +4574,7 @@ function loop(){
 
 /* ---------- wiring ---------- */
 $$('#nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
-$('#toTime').addEventListener('click',()=>{ if(!S.lines.length){ toast('Paste your lyrics first.'); return; } const done=S.lines.length&&S.lines.every(l=>l.start!=null); setTab(done?'export':'time'); });
+$('#toTime').addEventListener('click',()=>{ clearTimeout(lyT);parseLyrics();if(S.timingIssues.length)return; if(!S.lines.length){ toast('Paste your lyrics first.'); return; } const done=S.lines.length&&S.lines.every(l=>l.start!=null); setTab(done?'export':'time'); });
 $('#copyT').addEventListener('click',copyTimings);
 $$('#layoutSeg button').forEach(b=>b.addEventListener('click',()=>{ S.layout=b.dataset.v; renderSong(); dirty=true; persist(); }));
 [['#inTitle','title','titleAuto'],['#inArtist','artist','artistAuto'],['#inFooter','footer',null]].forEach(p=>$(p[0]).addEventListener('input',e=>{ S[p[1]]=e.target.value; if(p[2]) S[p[2]]=false; dirty=true; persist(); }));
@@ -4536,7 +4602,7 @@ BGS.forEach((c,i)=>{
 
 let lyT=0;
 $('#lyrics').addEventListener('input',()=>{ clearTimeout(lyT); lyT=setTimeout(parseLyrics,200); });
-$('#example').addEventListener('click',()=>{ $('#lyrics').value=EXAMPLE.map((t,i)=>{ const f=s=>'00:'+(s<10?'0':'')+s.toFixed(1); return f(2+i*4)+' --> '+f(5.6+i*4)+' | '+t; }).join('\n'); parseLyrics(); });
+$('#example').addEventListener('click',()=>{ $('#lyrics').value=EXAMPLE.map((t,i)=>{ const f=s=>'00:'+(s<10?'0':'')+s.toFixed(1); return f(2+i*4)+' to '+f(5.6+i*4)+' | '+t; }).join('\n'); parseLyrics(); });
 let clearArmed=0;
 $('#clearLy').addEventListener('click',e=>{
   const b=e.currentTarget;
@@ -4584,7 +4650,7 @@ Object.keys(FONTS).forEach(name=>{
 function buildSwatches(box,key){
   COLORS.forEach(c=>{
     const b=document.createElement('button'); b.type='button'; b.className='sw'; b.dataset.c=c; b.style.setProperty('--c',c); b.setAttribute('aria-label',c);
-    b.addEventListener('click',()=>{ S.style[key]=c; renderStyle(); persist(); });
+    b.addEventListener('click',()=>{ S.style[key]=c;if(brandOn())S.brand[key==='color'?'caption':'hi']=c; renderStyle(); persist(); });
     box.append(b);
   });
 }
@@ -4599,16 +4665,91 @@ $('#slowBtn').addEventListener('click',()=>startExport(true));
 $('#saveVid').addEventListener('click',()=>{ if(outBlob) saveFile(baseName()+'-lyrics.'+outExt,outBlob); });
 $('#srtBtn').addEventListener('click',()=>{
   if(!S.lines.some(l=>l.start!=null)){ toast('Stamp at least one line first.'); return; }
-  saveFile(baseName()+'-captions.txt',buildSRT());
+  saveFile(baseName()+'-captions.srt',buildSRT());
 });
+
+/* ---------- logo and brand colors ---------- */
+function rgb(hex){return [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));}
+function hexColor(v){return '#'+v.map(n=>clamp(Math.round(n),0,255).toString(16).padStart(2,'0')).join('').toUpperCase();}
+function luminance(hex){const v=rgb(hex).map(n=>{n/=255;return n<=.04045?n/12.92:Math.pow((n+.055)/1.055,2.4);});return .2126*v[0]+.7152*v[1]+.0722*v[2];}
+function contrast(a,b){const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+function readableColor(color,bg){
+  if(contrast(color,bg)>=4.5)return color;
+  const target=contrast('#FFFFFF',bg)>contrast('#000000',bg)?255:0,v=rgb(color);
+  for(let t=.05;t<=1.01;t+=.05){const c=hexColor(v.map(n=>n+(target-n)*Math.min(t,1)));if(contrast(c,bg)>=4.5)return c;}
+  return target?'#FFFFFF':'#000000';
+}
+function extractPalette(image){
+  const c=document.createElement('canvas');c.width=96;c.height=96;const ctx=c.getContext('2d',{willReadFrequently:true});
+  const k=Math.min(96/image.width,96/image.height);ctx.drawImage(image,0,0,image.width*k,image.height*k);
+  const data=ctx.getImageData(0,0,96,96).data,bins=new Map();
+  for(let i=0;i<data.length;i+=4){if(data[i+3]<128)continue;const v=[data[i],data[i+1],data[i+2]],key=v.map(n=>n>>4).join(',');let b=bins.get(key);if(!b){b={v:[0,0,0],n:0};bins.set(key,b);}b.n++;v.forEach((n,j)=>b.v[j]+=n);}
+  const all=[...bins.values()].map(b=>({v:b.v.map(n=>n/b.n),n:b.n}));
+  const colorful=all.filter(b=>Math.max(...b.v)-Math.min(...b.v)>24&&Math.max(...b.v)>40&&Math.min(...b.v)<235);
+  const pool=colorful.length?colorful:all;
+  pool.sort((a,b)=>b.n-a.n);const chosen=[];
+  for(const b of pool){if(chosen.every(c=>Math.hypot(...b.v.map((n,i)=>n-c.v[i]))>42))chosen.push(b);if(chosen.length===5)break;}
+  return chosen.map(b=>hexColor(b.v));
+}
+function useBrandColor(c){
+  S.brand.accent=c;S.brand.caption=readableColor(c,S.brand.background);S.brand.hi=S.brand.caption;
+  S.style.color=S.brand.caption;S.style.hi=S.brand.hi;renderStyle();dirty=true;persist();
+  $('#paletteNote').textContent=S.brand.caption.toUpperCase()!==c.toUpperCase()?'Logo color matched. The lyric shade is adjusted for readability.':'Logo color matched. You can change it below.';
+}
+function renderBrand(){
+  $('#logoPreview').hidden=!logoImg;$('#removeLogo').hidden=!logoImg;
+  if(logoImg&&$('#logoPreview').getAttribute('src')!==S.brand.logoData)$('#logoPreview').src=S.brand.logoData;
+  $('#logoLabel').textContent=logoImg?'Change logo: '+S.brand.logoName:'Upload your logo';
+  $('#showLogo').checked=S.brand.showLogo;$('#logoPosition').value=S.brand.position;$('#logoSize').value=S.brand.size;$('#logoSizeValue').textContent=S.brand.size+'%';
+  for(const [id,k] of [['brandCaption','caption'],['brandHi','hi'],['brandAccent','accent'],['brandBg','background']])$('#'+id).value=S.brand[k];
+  const box=$('#logoPalette');box.textContent='';
+  for(const c of S.brand.palette){const b=document.createElement('button');b.type='button';b.className='sw';b.style.setProperty('--c',c);b.setAttribute('aria-label','Use logo color '+c);b.setAttribute('aria-pressed',String(c===S.brand.accent));b.addEventListener('click',()=>useBrandColor(c));box.append(b);}
+  const low=contrast(S.brand.caption,S.brand.background)<4.5;
+  $('#contrastNote').textContent=low?'This lyric color may be hard to read against the brand background.':'Lyric color is readable against the brand background.';$('#fixContrast').hidden=!low;
+}
+async function loadLogo(file){
+  const token=++logoToken;if(!file)return;
+  if(!/^(image\/png|image\/jpeg|image\/webp)$/.test(file.type)&&! /\.(png|jpe?g|webp)$/i.test(file.name)){toast('Choose a PNG, JPG or WebP logo.');return;}
+  if(file.size>10*1024*1024){toast('Choose a logo smaller than 10 MB.');return;}
+  const url=URL.createObjectURL(file),im=new Image();
+  try{
+    await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=url;});if(token!==logoToken)return;
+    const c=document.createElement('canvas'),k=Math.min(1,512/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    const palette=extractPalette(c);if(!palette.length){toast('That image is fully transparent. Choose a visible logo.');return;}
+    const data=c.toDataURL('image/png');const ready=new Image();await new Promise((resolve,reject)=>{ready.onload=resolve;ready.onerror=reject;ready.src=data;});if(token!==logoToken)return;
+    logoImg=ready;S.brand.logoData=data;S.brand.logoName=file.name;S.brand.palette=palette;S.brand.showLogo=true;useBrandColor(palette[0]);renderBrand();dirty=true;
+  }catch(e){toast('That logo could not be opened. Try a PNG or JPG.');}finally{URL.revokeObjectURL(url);}
+}
+function logoBox(W,H){
+  const edge=Math.min(W,H),limit=edge*S.brand.size/100,k=Math.min(limit/logoImg.width,limit/logoImg.height);
+  const w=logoImg.width*k,h=logoImg.height*k,m=edge*.035;
+  return {x:S.brand.position.endsWith('right')?W-m-w:m,y:S.brand.position.startsWith('bottom')?H-m-h:m,w:w,h:h};
+}
+function drawLogo(c,W,H){if(!logoImg||!S.brand.showLogo)return;const b=logoBox(W,H);c.drawImage(logoImg,b.x,b.y,b.w,b.h);}
+$('#logoFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)loadLogo(f);});
+$('#removeLogo').addEventListener('click',()=>{logoToken++;logoImg=null;S.brand.logoData='';S.brand.logoName='';S.brand.palette=[];$('#logoPreview').removeAttribute('src');$('#paletteNote').textContent='Upload a logo to see its colors.';renderBrand();dirty=true;persist();});
+$('#showLogo').addEventListener('change',e=>{S.brand.showLogo=e.target.checked;dirty=true;persist();});
+$('#logoPosition').addEventListener('change',e=>{S.brand.position=e.target.value;dirty=true;persist();});
+$('#logoSize').addEventListener('input',e=>{S.brand.size=+e.target.value;renderBrand();dirty=true;persist();});
+for(const [id,k] of [['brandCaption','caption'],['brandHi','hi'],['brandAccent','accent'],['brandBg','background']])$('#'+id).addEventListener('input',e=>{S.brand[k]=e.target.value;if(k==='caption')S.style.color=e.target.value;if(k==='hi')S.style.hi=e.target.value;renderStyle();dirty=true;persist();});
+$('#fixContrast').addEventListener('click',()=>{S.brand.caption=readableColor(S.brand.caption,S.brand.background);S.style.color=S.brand.caption;renderStyle();persist();});
+$('#timingFile').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;if(f.size>1024*1024){toast('Choose a timing file smaller than 1 MB.');return;}try{$('#lyrics').value=await f.text();parseLyrics();toast(S.timingIssues.length?'Check the highlighted timing errors.':'Timed lyrics imported. Preview before export.');}catch(err){toast('That timing file could not be read.');}});
+$('#retime').addEventListener('click',()=>$('#retimeDialog').showModal());
+$('#retimeCancel').addEventListener('click',()=>$('#retimeDialog').close());
+$('#retimeConfirm').addEventListener('click',()=>{$('#retimeDialog').close();autoSync(true);});
+$('#undoSync').addEventListener('click',()=>{if(S.undoLyrics==null)return;const old=S.undoLyrics;S.undoLyrics=null;$('#lyrics').value=old;parseLyrics();toast('Previous lyrics and timings restored.');});
+function shiftCaptions(delta,reset=false){S.shift=reset?0:clamp(Math.round((S.shift+delta)*100)/100,-10,10);$('#shift').value=S.shift;$('#shiftV').textContent=(S.shift>0?'+':'')+S.shift.toFixed(2)+' s';rebuild();renderCues();persist();}
+$('#captionEarlier').addEventListener('click',()=>shiftCaptions(-.25));$('#captionLater').addEventListener('click',()=>shiftCaptions(.25));$('#resetShift').addEventListener('click',()=>shiftCaptions(0,true));
 
 /* ---------- boot ---------- */
 restore();
 $('#delay').value=S.delay; $('#delayV').textContent=S.delay+' ms';
 $('#hold').value=S.hold; $('#holdV').textContent=S.hold+' s';
 $('#shift').value=S.shift; $('#shiftV').textContent=(S.shift>0?'+':'')+S.shift.toFixed(2)+' s';
+window.__tp=parseTimings($('#lyrics').value);
 rebuild();
 renderLyricsNext();
+renderBrand();
 resizeCanvas(720); renderStyle(); renderSong(); renderCues(); renderDock(); renderExport(); updatePlayIcon(); loadFont();
 if(PROXY){ $('#paidKey').placeholder='Your passcode'; const ph=$('#paidHint'); if(ph) ph.textContent='This sends your song to your own private server, which asks OpenAI for the timings. The server holds the key, so it never appears on this page. Only people with your passcode can use it.'; }
 getDL().then(dl=>{ if(!dl) $('#saveNote').textContent='Saving is not available in this view, so the finished video can only be previewed here.'; });
@@ -4772,15 +4913,17 @@ async function runPaidAsr(audio,key,lyricsHint){
 
 /* ---------- auto-sync: the button ---------- */
 let syncBusy=false;
-function lyricTexts(){
-  const tr=parseTimings($('#lyrics').value);
-  const nraw=normalizeTimings($('#lyrics').value).split(/\r?\n/).map(s=>s.trim()).filter(s=>s&&!/^\d+$/.test(s));
-  if(tr.lines.length&&tr.lines.length>=nraw.length*0.5) return tr.lines.map(l=>l.text);
-  return $('#lyrics').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+function lyricTexts(){return parseTimings($('#lyrics').value).lines.map(l=>l.text);}
+function protectSync(replaceTimes){
+  clearTimeout(lyT);parseLyrics();
+  if(S.timingIssues.length){toast('Fix the timing format first.');return false;}
+  if(S.lines.some(l=>l.start!=null)&&!replaceTimes){toast('Your timings are protected. Use Replace timings only if you want new estimates.');return false;}
+  return true;
 }
+function rememberSync(){S.undoLyrics=$('#lyrics').value;persist();}
 function applyAligned(texts,res){
   const f=t=>{ t=Math.max(0,t); const m=Math.floor(t/60), s=t-m*60; return String(m).padStart(2,'0')+':'+(s<10?'0':'')+s.toFixed(2); };
-  $('#lyrics').value=texts.map((t,i)=>f(res[i].start)+' --> '+f(res[i].end)+' | '+t).join('\n');
+  $('#lyrics').value=texts.map((t,i)=>f(res[i].start)+' to '+f(res[i].end)+' | '+t).join('\n');
   S.shift=0; $('#shift').value=0; $('#shiftV').textContent='0.00 s';
   parseLyrics();
   S.low=res.map(r=>!!r.low); renderCues(); renderLyricsNext();
@@ -4791,15 +4934,15 @@ function finishSync(texts,words,how){
   const res=alignLyrics(texts.map(t=>({text:t})),words,snd?snd.duration:0);
   const lowN=applyAligned(texts,res);
   const heard=res.filter(r=>!r.marker&&r.hits>0).length, sung=res.filter(r=>!r.marker).length;
-  asProgress(1,'Done ('+how+'). I matched '+heard+' of '+sung+' lines to words I heard.'+(lowN?' '+lowN+' line'+(lowN===1?' is':'s are')+' marked ⚠ because they were hard to hear, so their times are less certain.':'')+' Press play to check, then make your video.');
+  asProgress(1,'Draft timing ('+how+'). I matched '+heard+' of '+sung+' lines to words I heard.'+(lowN?' '+lowN+' line'+(lowN===1?' is':'s are')+' marked ⚠ because they were hard to hear, so their times are less certain.':'')+' Press play to check, then make your video.');
   $('#paidBox').hidden=true; $('#reviewBtn').hidden=false;
   return {res:res,lowN:lowN};
 }
-async function autoSync(){
-  if(syncBusy) return;
+async function autoSync(replaceTimes=false){
+  if(syncBusy||!protectSync(replaceTimes===true)) return;
   if(!snd||!snd.buf){ toast('Add your song first (Song step).'); return; }
   const texts=lyricTexts(); if(!texts.length){ toast('Paste your lyrics first.'); return; }
-  syncBusy=true; $('#autoSync').disabled=true; $('#paidBox').hidden=true; asProgress(0,'Getting your song ready…');
+  rememberSync();syncBusy=true; $('#autoSync').disabled=true; $('#paidBox').hidden=true; asProgress(0,'Getting your song ready…');
   try{
     const audio=await toMono16k(snd.buf);
     const model=ASR_MODELS[$('#asrModel').value]||ASR_MODELS.fast;
@@ -4809,17 +4952,17 @@ async function autoSync(){
   }catch(e){
     asProgress(0,'The free option did not work here: '+(e&&e.message||e)+'. Nothing was charged. You can paste timings from another tool, or use the paid backup below (only if you choose to).');
     $('#paidBox').hidden=false; $('#paidCost').textContent=paidCostText();
-  }finally{ syncBusy=false; $('#autoSync').disabled=false; }
+  }finally{ syncBusy=false;renderLyricsNext(); }
 }
 function paidCostText(){ const mins=snd?snd.duration/60:0; const usd=mins*0.006; return 'This song is '+fmtDur(snd?snd.duration:0)+'. At about $0.006 per minute (OpenAI’s published price when I wrote this; check it), it should cost about '+(usd<0.01?'less than 1 cent':'$'+usd.toFixed(3))+'.'; }
 async function paidSync(){
-  if(syncBusy) return;
+  if(syncBusy||!protectSync(false)) return;
   const key=$('#paidKey').value.trim();
   if(!snd||!snd.buf){ toast('Add your song first.'); return; }
   const texts=lyricTexts(); if(!texts.length){ toast('Paste your lyrics first.'); return; }
   if(!key){ toast(PROXY?'Type your passcode first.':'Paste your OpenAI key first.'); return; }
   if(!$('#paidOk').checked){ toast('Tick the box to confirm you agree to the charge.'); return; }
-  syncBusy=true; $('#paidGo').disabled=true; asProgress(0.1,'Sending the song to OpenAI…');
+  rememberSync();syncBusy=true; $('#paidGo').disabled=true; asProgress(0.1,'Sending the song to OpenAI…');
   try{
     const audio=await toMono16k(snd.buf);
     const words=await runPaidAsr(audio,key,texts.join(' '));
@@ -4828,7 +4971,7 @@ async function paidSync(){
   }catch(e){ asProgress(0,'The paid backup did not work: '+(e&&e.message||e)+'. If this says "Failed to fetch", this page is probably not allowed to contact that service. You were not charged for a failed request.'); }
   finally{ $('#paidKey').value=''; $('#paidOk').checked=false; syncBusy=false; $('#paidGo').disabled=false; }
 }
-$('#autoSync').addEventListener('click',autoSync);
+$('#autoSync').addEventListener('click',()=>autoSync(false));
 $('#paidGo').addEventListener('click',paidSync);
 async function checkReach(){
   const out=$('#reachOut'); out.hidden=false; out.textContent='Checking…';
@@ -4843,7 +4986,7 @@ async function checkReach(){
 $('#reachBtn').addEventListener('click',checkReach);
 $('#reviewBtn').addEventListener('click',()=>setTab('time'));
 
-if(TEST) window.__ls={alignLyrics:alignLyrics,finishSync:finishSync,lyricTexts:lyricTexts,normalizeTimings:normalizeTimings,readTags:readTags,brandOn:brandOn,timingsText:timingsText,parseTimings:parseTimings,S:S,rebuild:rebuild,parseLyrics:parseLyrics,startExport:startExport,loadVideo:loadVideo,loadAudio:loadAudio,seek:seek,stamp:stamp,playAll:playAll,pauseAll:pauseAll,curT:curT,dur:dur,buildSRT:buildSRT,activeAt:activeAt,isPlaying:isPlaying,setTab:setTab,getOut:()=>outBlob};
+if(TEST) window.__ls={alignLyrics:alignLyrics,finishSync:finishSync,lyricTexts:lyricTexts,normalizeTimings:normalizeTimings,readTags:readTags,brandOn:brandOn,timingsText:timingsText,parseTimings:parseTimings,autoSync:autoSync,protectSync:protectSync,readableColor:readableColor,extractPalette:extractPalette,loadLogo:loadLogo,paintFrame:paintFrame,capStyle:capStyle,S:S,rebuild:rebuild,parseLyrics:parseLyrics,startExport:startExport,loadVideo:loadVideo,loadAudio:loadAudio,seek:seek,stamp:stamp,playAll:playAll,pauseAll:pauseAll,curT:curT,dur:dur,buildSRT:buildSRT,activeAt:activeAt,isPlaying:isPlaying,setTab:setTab,getOut:()=>outBlob};
 loop();
 })();
 </script></body></html>
