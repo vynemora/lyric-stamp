@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#060910"><title>Lyric Stamp</title><meta name="application-version" content="2.0.0"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#060910"><title>Lyric Stamp</title><meta name="application-version" content="2.0.1"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Montserrat:wght@800&family=Bebas+Neue&family=Playfair+Display:wght@700&family=Pacifico&family=Permanent+Marker&display=swap">
 <style>
 /* Layout: sticky preview stage on top, one panel per step beneath it, a fixed step bar at the bottom, and a Stamp dock that rides above the bar on the Time step. */
@@ -244,7 +244,7 @@ body.busy .nav button:not([data-tab="export"]),body.busy .transport,body.busy .d
           <button type="button" data-v="brand" aria-pressed="true">Cover + lyrics</button>
           <button type="button" data-v="full" aria-pressed="false">Full picture</button>
         </div>
-        <p class="hint" id="layoutHint">Your cover on the left, the song name and gold lyrics on the right.</p>
+        <p class="hint" id="layoutHint">Your cover on the left, the song name and your brand-colored lyrics on the right.</p>
         <p class="note" id="coverNote" hidden></p>
       </div>
       <div id="brandOpts" class="panel" style="padding:0;gap:14px">
@@ -3558,7 +3558,7 @@ const FPS=30;
 const S={
   lines:[], cur:0, sel:-1, tab:'song',
   aspect:'16:9', bg:0, bgImg:null, coverAuto:false, coverName:'', layout:'brand', title:'', artist:'', footer:'SUBSCRIBE FOR MORE MUSIC', titleAuto:false, artistAuto:false, hold:8, delay:200, shift:0, quality:1080, rate:1,
-  brand:{accent:'#E2C368',caption:'#EDCF71',hi:'#EDCF71',background:'#060910',palette:[],showLogo:true,position:'top-right',size:10,logoData:'',logoName:''}, timingIssues:[], undoLyrics:null,
+  brand:{accent:'#E2C368',caption:'#EDCF71',hi:'#EDCF71',background:'#060910',palette:[],showLogo:true,position:'top-right',size:10,capPosition:'middle',logoData:'',logoName:''}, timingIssues:[], undoLyrics:null,
   style:{font:'Montserrat',size:6.5,color:'#FFFFFF',hi:'#FFD23F',pos:'bottom',sweep:true,outline:true,shadow:true,box:false,caps:false}
 };
 let logoImg=null, logoToken=0;
@@ -3754,6 +3754,7 @@ function restore(){
       if(Array.isArray(d.brand.palette))S.brand.palette=d.brand.palette.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,5);
       if(['top-left','top-right','bottom-left','bottom-right'].includes(d.brand.position))S.brand.position=d.brand.position;
       if(typeof d.brand.size==='number')S.brand.size=clamp(d.brand.size,5,18);
+      if(['top','middle','bottom'].includes(d.brand.capPosition))S.brand.capPosition=d.brand.capPosition;
       if(typeof d.brand.showLogo==='boolean')S.brand.showLogo=d.brand.showLogo;
       if(typeof d.brand.logoData==='string'&&/^data:image\/png;base64,/.test(d.brand.logoData)&&d.brand.logoData.length<1500000){S.brand.logoData=d.brand.logoData;S.brand.logoName=String(d.brand.logoName||'Logo');const im=new Image();im.onload=()=>{logoImg=im;renderBrand();dirty=true;};im.src=S.brand.logoData;}
     }
@@ -3907,7 +3908,7 @@ function brandFrame(W,H){
   brandCache={key:key,im:S.bgImg,cv:cv}; return cv;
 }
 function drawBase(c,W,H){ if(brandOn()) c.drawImage(brandFrame(W,H),0,0); else drawBg(c,W,H); }
-const capStyle=()=>brandOn()?{...S.style,color:S.brand.caption,hi:S.brand.hi,pos:'middle'}:S.style;
+const capStyle=()=>brandOn()?{...S.style,color:S.brand.caption,hi:S.brand.hi,pos:S.brand.capPosition}:S.style;
 let bgCache=null;
 function bgBackdrop(im,W,H){
   if(bgCache&&bgCache.im===im&&bgCache.W===W&&bgCache.H===H) return bgCache.cv;
@@ -3932,22 +3933,23 @@ function drawBg(c,W,H){
   }
 }
 function wrapText(c,text,maxW){
-  const words=text.split(/\s+/), out=[]; let cur='';
-  for(const w of words){
-    const test=cur?cur+' '+w:w;
-    if(!cur||c.measureText(test).width<=maxW) cur=test; else{ out.push(cur); cur=w; }
+  const words=String(text).split(/\s+/),out=[];let cur='';
+  for(const word of words){
+    const chunks=[];let part='';
+    for(const char of Array.from(word)){if(part&&c.measureText(part+char).width>maxW){chunks.push(part);part=char;}else part+=char;}if(part)chunks.push(part);
+    for(let k=0;k<chunks.length;k++){const w=chunks[k],test=cur?cur+' '+w:w;if(!cur||c.measureText(test).width<=maxW)cur=test;else{out.push(cur);cur=w;}if(k<chunks.length-1){out.push(cur);cur='';}}
   }
-  if(cur) out.push(cur);
-  return out;
+  if(cur)out.push(cur);return out;
 }
 /* A caption line is drawn once into two small canvases (base and sung color) and then reused every frame. */
 const layerCache=new Map();
 const styleKey=()=>{ const s=capStyle(); return [brandOn()?'b':'n',s.font,s.size,s.color,s.hi,s.outline,s.shadow,s.box,s.caps].join('|'); };
 function buildLayers(W,H,text){
-  const st=capStyle(), size=Math.round(Math.min(W,H)*st.size/100);
+  const st=capStyle();let size=Math.round(Math.min(W,H)*st.size/100);
   measureCtx.font=fontStr(size);
-  const t=st.caps?text.toUpperCase():text;
-  const rows=wrapText(measureCtx,t,brandOn()?brandGeom(W,H).capW:W*0.88);
+  const t=st.caps?text.toUpperCase():text,br=brandOn(),geom=br?brandGeom(W,H):null,maxW=br?geom.capW:W*.88,maxH=br?geom.footY-geom.ruleY-H*.11:H*.7;
+  let rows=wrapText(measureCtx,t,maxW);
+  while(rows.length*size*1.22>maxH&&size>Math.min(W,H)*.018){size*=.94;measureCtx.font=fontStr(size);rows=wrapText(measureCtx,t,maxW);}
   const lh=size*1.22, bh=rows.length*lh;
   const widths=rows.map(s=>measureCtx.measureText(s).width);
   const maxw=Math.max.apply(null,widths), pad=Math.ceil(size*0.7);
@@ -3986,7 +3988,7 @@ function getLayers(W,H,text){
 function drawCaption(c,W,H,text,frac,alpha){
   const L=getLayers(W,H,text), st=capStyle(), m=H*0.075, br=brandOn();
   const BG=br?brandGeom(W,H):null, bx=br?Math.round(BG.capX-L.bw/2):Math.round((W-L.bw)/2);
-  let by=br?Math.round(BG.capY-L.textH/2-L.pad):Math.round(st.pos==='top'?m-L.pad:st.pos==='middle'?(H-L.textH)/2-L.pad:H-m-L.textH-L.pad);
+  let by=br?Math.round((st.pos==='top'?BG.ruleY+H*.055:st.pos==='bottom'?BG.footY-H*.055-L.textH:(BG.ruleY+BG.footY-L.textH)/2)-L.pad):Math.round(st.pos==='top'?m-L.pad:st.pos==='middle'?(H-L.textH)/2-L.pad:H-m-L.textH-L.pad);
   if(!br&&logoImg&&S.brand.showLogo){const lb=logoBox(W,H);if(st.pos==='top'&&S.brand.position.startsWith('top'))by=Math.max(by,lb.y+lb.h+H*.025);if(st.pos==='bottom'&&S.brand.position.startsWith('bottom'))by=Math.min(by,lb.y-L.bh-H*.025);}
   c.save(); c.globalAlpha=alpha; c.drawImage(L.base,bx,by);
   if(st.sweep&&frac>0){
@@ -4196,7 +4198,7 @@ function renderSong(){
   $('#audioOpts').hidden=!(hasAny()&&!hasPic());
   $$('#layoutSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S.layout)));
   $('#brandOpts').hidden=S.layout!=='brand';
-  { const lh=$('#layoutHint'); if(lh) lh.textContent=(S.layout==='brand'&&!S.bgImg)?'Choose a cover picture below to use this layout.':(S.layout==='brand'&&S.aspect==='1:1')?'This layout needs the wide 16:9 or tall 9:16 shape.':S.layout==='brand'?(S.aspect==='9:16'?'Your cover on top, the song name and gold lyrics below (for Shorts).':'Your cover on the left, the song name and gold lyrics on the right.'):'The picture fills the whole video, with captions on top.'; }
+  { const lh=$('#layoutHint'); if(lh) lh.textContent=(S.layout==='brand'&&!S.bgImg)?'Choose a cover picture below to use this layout.':(S.layout==='brand'&&S.aspect==='1:1')?'This layout needs the wide 16:9 or tall 9:16 shape.':S.layout==='brand'?(S.aspect==='9:16'?'Your cover on top, the song name and your brand-colored lyrics below (for Shorts).':'Your cover on the left, the song name and your brand-colored lyrics on the right.'):'The picture fills the whole video, with captions on top.'; }
   [['#inTitle',S.title],['#inArtist',S.artist],['#inFooter',S.footer]].forEach(p=>{ const e=$(p[0]); if(e&&document.activeElement!==e&&e.value!==p[1]) e.value=p[1]; });
   $('#resume').hidden=hasAny()||!S.lines.some(l=>l.start!=null);
   const mn=$('#mixNote'); let msg='';
@@ -4249,7 +4251,7 @@ function renderStyle(){
   const st=S.style;
   $$('#fonts .fontbtn').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.f===st.font)));
   $('#size').value=st.size; $('#sizeV').textContent=st.size+'% of height';
-  $$('#pos button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===st.pos)));
+  $$('#pos button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===capStyle().pos)));
   $$('#colorSw .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===st.color)));
   $$('#hiSw .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===st.hi)));
   $$('#fx .chip').forEach(b=>b.setAttribute('aria-pressed',String(!!st[b.dataset.k])));
@@ -4656,7 +4658,7 @@ function buildSwatches(box,key){
 }
 buildSwatches($('#colorSw'),'color'); buildSwatches($('#hiSw'),'hi');
 $('#size').addEventListener('input',e=>{ S.style.size=+e.target.value; renderStyle(); persist(); });
-$('#pos').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; S.style.pos=b.dataset.v; renderStyle(); persist(); });
+$('#pos').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; if(brandOn())S.brand.capPosition=b.dataset.v;else S.style.pos=b.dataset.v; renderStyle(); persist(); });
 $('#fx').addEventListener('click',e=>{ const b=e.target.closest('[data-k]'); if(!b) return; S.style[b.dataset.k]=!S.style[b.dataset.k]; renderStyle(); persist(); });
 
 $('#qual').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; S.quality=+b.dataset.v; renderExport(); persist(); });
